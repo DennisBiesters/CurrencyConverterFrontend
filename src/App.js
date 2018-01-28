@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import logo from './logo.svg';
 import './App.css';
 import axios from 'axios';
+import querystring from 'querystring';
 
 class App extends Component {
   constructor(props) {
@@ -10,6 +11,10 @@ class App extends Component {
 		webserviceState: 'fixerio',
 		currencyFromState: 'EUR',
 		currencyToState: 'USD',
+		amountFrom: 1,
+		backend: 'http://localhost/CurrencyConverterBackEnd/web/api',
+		username: 'admin',
+		password: 'admin'
 	};
 	
 	this.webserviceOptions = [{key: 'webservicex', value: 'webservicex'}, {key: 'currencyconverter', value:'currencyconverter'}, {key: 'fixerio', value:'fixerio'}];
@@ -31,6 +36,7 @@ class App extends Component {
 		<option key={op.key} value={op.key}>{op.key} - {op.value}</option>
 	);
 	
+	this.handleLogin = this.handleLogin.bind(this);
     this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
   }
@@ -42,19 +48,27 @@ class App extends Component {
 		  this.setState({currencyFromState: event.target.value});
 	  } else if (event.target.name === 'DropdownCurrencyTo'){
 		  this.setState({currencyToState: event.target.value});
+	  } else if (event.target.name === 'Backend'){
+		  this.setState({backend: event.target.value});
+	  } else if (event.target.name === 'Username'){
+		  this.setState({username: event.target.value});
+	  } else if (event.target.name === 'Password'){
+		  this.setState({password: event.target.value});
 	  }
+	  
   }
 
   handleLogin(event) {
-	  event.preventDefault();
+	event.preventDefault();
+	
+	const data = querystring.stringify({_username: this.state.username, _password: this.state.password});
 	  
-	  axios.post('http://localhost/CurrencyConverter/web/api/login_check', 
-	  {
-		  _username: 'admin',
-		  _password: 'admin'
-	  })
-	.then((response) => {
-		console.log(response.data.token)
+	axios.post(this.state.backend + '/login_check', data)
+	.then((response) => {		
+		this.DisplayToken.value = response.data.token;
+	 })
+     .catch((error) => {
+		alert(error); 
 	 });
   }
   
@@ -62,16 +76,19 @@ class App extends Component {
 	event.preventDefault();
 	
 	axios.get(
-	 'http://localhost/CurrencyConverter/web/unapi/ConvertCurrency',
+	 this.state.backend + '/ConvertCurrency',
 	 {
 		params: {
       ws_name: this.state.webserviceState,
 	  currency_from: this.state.currencyFromState,
 	  currency_to: this.state.currencyToState
-    }
+    }, headers: { 'Authorization': 'Bearer ' + this.DisplayToken.value }
 	 })
 	 .then((response) => {
 		this.AmountToOutput.value = this.AmountFromInput.value * response.data.rate;
+	 })
+	 .catch((error) => {
+		alert(error); 
 	 });
   }
   
@@ -82,14 +99,32 @@ class App extends Component {
           <img src={logo} className="App-logo" alt="logo" />
           <h1 className="App-title">Welcome to React</h1>
         </header>
-			  <div className="row">
-	  <div className="col-md-2 offset-md-5">
 	  <form onSubmit={this.handleLogin}>
-	  
-	  <input type="submit" value="Login" className="btn btn-primary"/>  
+	  			  <div className="row">
+	  <div className="col-md-4 offset-md-4">
+	   <div className="form-group">
+	  <label htmlFor="DisplayToken">Token</label>
+	  <textarea rows="5" cols="200" className="form-control" name="DisplayToken" ref={(DisplayToken) => this.DisplayToken = DisplayToken}></textarea>	
+	  </div>
+	  	  <input type="submit" value="Get JWT token" className="btn btn-primary"/>  
+	  </div>
+	  <div className="col-md-4">
+	  <div className="form-group">
+	   <label htmlFor="Backend">Backend URL</label>
+		   <input type="text" name="Backend" value={this.state.backend} onChange={this.handleChange} className="form-control"></input>
+	  </div>
+	  <div className="form-group">
+	   <label htmlFor="Username">Username</label>
+		   <input type="text" name="Username" value={this.state.username} onChange={this.handleChange} className="form-control"></input>
+	  </div>
+	  <div className="form-group">
+	   <label htmlFor="Password">Password</label>
+		   <input type="text" name="Password" value={this.state.password} onChange={this.handleChange} className="form-control"></input>
+	  </div>
+	  </div>
+	  </div>
 	  </form>
-	  </div>
-	  </div>
+<br/>
 		
 		 <form onSubmit={this.handleSubmit}>
 		 <div className="row">
@@ -111,7 +146,7 @@ class App extends Component {
 			 {this.dropdownCurrencyOptions}
           </select>
 		   <label htmlFor="AmountFrom">Amount</label>
-		   <input type="text" name="AmountFrom" className="form-control" ref={(AmountFromInput) => this.AmountFromInput = AmountFromInput}></input>
+		   <input type="text" defaultValue={this.state.amountFrom} name="AmountFrom" className="form-control" ref={(AmountFromInput) => this.AmountFromInput = AmountFromInput}></input>
 		   </div>
 		   </div>
 		   
