@@ -14,27 +14,11 @@ class App extends Component {
 		amountFrom: 1,
 		backend: 'http://localhost/CurrencyConverterBackEnd/web/api',
 		username: 'admin',
-		password: 'admin'
+		password: 'admin',
+		dropdownWebserviceOptions: '',
+		dropdownCurrencyFromOptions: '',
+		dropdownCurrencyToOptions: ''
 	};
-	
-	this.webserviceOptions = [{key: 'webservicex', value: 'webservicex'}, {key: 'currencyconverter', value:'currencyconverter'}, {key: 'fixerio', value:'fixerio'}];
-	this.currencyOptions = [{key: 'USD', value: 'United States'}, {key: 'EUR', value: 'Europe'}, {key: 'GBP', value: 'United Kingdom'}]
-
-	//axios.get(
-	 //'http://localhost/CurrencyConverter/web/unapi/GetAllWebservices',
-	 //)
-	 //.then((response) => {
-		//this.options = response.data;
-		//console.log(this.options);
-	 //});
-	
-	this.dropdownWebserviceOptions = this.webserviceOptions.map((op) => 
-		<option key={op.key} value={op.key}>{op.value}</option>
-	);
-	
-	this.dropdownCurrencyOptions = this.currencyOptions.map((op) =>
-		<option key={op.key} value={op.key}>{op.key} - {op.value}</option>
-	);
 	
 	this.handleLogin = this.handleLogin.bind(this);
     this.handleChange = this.handleChange.bind(this);
@@ -66,6 +50,26 @@ class App extends Component {
 	axios.post(this.state.backend + '/login_check', data)
 	.then((response) => {		
 		this.DisplayToken.value = response.data.token;
+		
+	axios.get(
+	 this.state.backend + '/GetAllWebservices', {
+	 headers: { 'Authorization': 'Bearer ' + this.DisplayToken.value }
+	 }
+	 )
+	 .then((response) => {
+		this.setState({dropdownWebserviceOptions: Object.keys(response.data.webservices).map((option) => <option key={option} value={option}>{option}</option>)});	
+	 });
+	 
+	 		axios.get(
+	 this.state.backend + '/GetAllCurrencies', {
+		 headers: { 'Authorization': 'Bearer ' + this.DisplayToken.value }
+	 }
+	 )
+	 .then((response) => {
+		this.setState({dropdownCurrencyFromOptions: Object.values(response.data.currencies).map((option) => <option key={option} value={option}>{option}</option>)});
+		this.setState({dropdownCurrencyToOptions: Object.values(response.data.currencies).map((option) => <option key={option} value={option}>{option}</option>)});		
+	 });
+	 
 	 })
      .catch((error) => {
 		alert(error); 
@@ -106,7 +110,7 @@ class App extends Component {
 	  <label htmlFor="DisplayToken">Token</label>
 	  <textarea rows="5" cols="200" className="form-control" name="DisplayToken" ref={(DisplayToken) => this.DisplayToken = DisplayToken}></textarea>	
 	  </div>
-	  	  <input type="submit" value="Get JWT token" className="btn btn-primary"/>  
+	  	  <input type="submit" value="Get JWT" className="btn btn-primary"/>  
 	  </div>
 	  <div className="col-md-4">
 	  <div className="form-group">
@@ -132,7 +136,7 @@ class App extends Component {
 		 <div className="form-group">
 		 <label htmlFor="DropdownWebservice">Webservice</label>
 		 <select value={this.state.webserviceState} onChange={this.handleChange} name="DropdownWebservice" className="form-control">
-			 {this.dropdownWebserviceOptions}
+			 {this.state.dropdownWebserviceOptions}
           </select>
 		  </div>
 		  </div>
@@ -143,7 +147,7 @@ class App extends Component {
 		  <div className="form-group">
 		  <label htmlFor="DropdownCurrencyFrom">Currency I Have</label>
 		 <select value={this.state.currencyFromState} onChange={this.handleChange} name="DropdownCurrencyFrom" className="form-control">
-			 {this.dropdownCurrencyOptions}
+			 {this.state.dropdownCurrencyFromOptions}
           </select>
 		   <label htmlFor="AmountFrom">Amount</label>
 		   <input type="text" defaultValue={this.state.amountFrom} name="AmountFrom" className="form-control" ref={(AmountFromInput) => this.AmountFromInput = AmountFromInput}></input>
@@ -154,7 +158,7 @@ class App extends Component {
 		   <div className="form-group">
 		  <label htmlFor="DropdownCurrencyTo">Currency I Want</label>
 		 <select value={this.state.currencyToState} onChange={this.handleChange} name="DropdownCurrencyTo" className="form-control">
-			 {this.dropdownCurrencyOptions}
+			 {this.state.dropdownCurrencyToOptions}
           </select>
 		    <label htmlFor="AmountTo">Amount</label>
 		   <input type="text" name="AmountTo" className="form-control" ref={(AmountToOutput) => this.AmountToOutput = AmountToOutput}></input>
