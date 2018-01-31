@@ -1,175 +1,67 @@
-import React, { Component } from 'react';
-import logo from './logo.svg';
-import './App.css';
-import axios from 'axios';
-import querystring from 'querystring';
+import React, { Component } from "react";
+import { Link, withRouter } from "react-router-dom";
+import { Nav, NavItem, Navbar } from "react-bootstrap";
+import Routes from "./Routes";
+import RouteNavItem from "./components/RouteNavItem";
+import "./App.css";
 
 class App extends Component {
   constructor(props) {
     super(props);
-	this.state = {
-		webserviceState: 'fixerio',
-		currencyFromState: 'EUR',
-		currencyToState: 'USD',
-		amountFrom: 1,
-		backend: 'http://localhost/CurrencyConverterBackEnd/web/api',
-		username: 'admin',
-		password: 'admin',
-		dropdownWebserviceOptions: '',
-		dropdownCurrencyFromOptions: '',
-		dropdownCurrencyToOptions: ''
-	};
-	
-	this.handleLogin = this.handleLogin.bind(this);
-    this.handleChange = this.handleChange.bind(this);
-    this.handleSubmit = this.handleSubmit.bind(this);
-  }
-  
-  handleChange(event) {
-	  if(event.target.name === 'DropdownWebservice'){
-		  this.setState({webserviceState: event.target.value});
-	  } else if (event.target.name === 'DropdownCurrencyFrom'){
-		  this.setState({currencyFromState: event.target.value});
-	  } else if (event.target.name === 'DropdownCurrencyTo'){
-		  this.setState({currencyToState: event.target.value});
-	  } else if (event.target.name === 'Backend'){
-		  this.setState({backend: event.target.value});
-	  } else if (event.target.name === 'Username'){
-		  this.setState({username: event.target.value});
-	  } else if (event.target.name === 'Password'){
-		  this.setState({password: event.target.value});
-	  }
-	  
+
+    this.state = {
+      isAuthenticated: false,
+      isAuthenticating: true
+    };
   }
 
-  handleLogin(event) {
-	event.preventDefault();
-	
-	const data = querystring.stringify({_username: this.state.username, _password: this.state.password});
-	  
-	axios.post(this.state.backend + '/login_check', data)
-	.then((response) => {		
-		this.DisplayToken.value = response.data.token;
-		
-	axios.get(
-	 this.state.backend + '/GetAllWebservices', {
-	 headers: { 'Authorization': 'Bearer ' + this.DisplayToken.value }
-	 }
-	 )
-	 .then((response) => {
-		this.setState({dropdownWebserviceOptions: Object.keys(response.data.webservices).map((option) => <option key={option} value={option}>{option}</option>)});	
-	 });
-	 
-	 		axios.get(
-	 this.state.backend + '/GetAllCurrencies', {
-		 headers: { 'Authorization': 'Bearer ' + this.DisplayToken.value }
-	 }
-	 )
-	 .then((response) => {
-		this.setState({dropdownCurrencyFromOptions: Object.values(response.data.currencies).map((option) => <option key={option} value={option}>{option}</option>)});
-		this.setState({dropdownCurrencyToOptions: Object.values(response.data.currencies).map((option) => <option key={option} value={option}>{option}</option>)});		
-	 });
-	 
-	 })
-     .catch((error) => {
-		alert(error); 
-	 });
+  async componentDidMount() {
+    this.setState({ isAuthenticating: false });
   }
-  
-  handleSubmit(event) {
-	event.preventDefault();
-	
-	axios.get(
-	 this.state.backend + '/ConvertCurrency',
-	 {
-		params: {
-      ws_name: this.state.webserviceState,
-	  currency_from: this.state.currencyFromState,
-	  currency_to: this.state.currencyToState
-    }, headers: { 'Authorization': 'Bearer ' + this.DisplayToken.value }
-	 })
-	 .then((response) => {
-		this.AmountToOutput.value = this.AmountFromInput.value * response.data.rate;
-	 })
-	 .catch((error) => {
-		alert(error); 
-	 });
+
+  userHasAuthenticated = authenticated => {
+    this.setState({ isAuthenticated: authenticated });
   }
-  
+
+  handleLogout = event => {
+	localStorage.removeItem('jwt');
+    this.userHasAuthenticated(false);
+
+    this.props.history.push("/login");
+  }
+
   render() {
+    const childProps = {
+      isAuthenticated: this.state.isAuthenticated,
+      userHasAuthenticated: this.userHasAuthenticated
+    };
+
     return (
+      !this.state.isAuthenticating &&
       <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <h1 className="App-title">Welcome to React</h1>
-        </header>
-	  <form onSubmit={this.handleLogin}>
-	  			  <div className="row">
-	  <div className="col-md-4 offset-md-4">
-	   <div className="form-group">
-	  <label htmlFor="DisplayToken">Token</label>
-	  <textarea rows="5" cols="200" className="form-control" name="DisplayToken" ref={(DisplayToken) => this.DisplayToken = DisplayToken}></textarea>	
-	  </div>
-	  	  <input type="submit" value="Get JWT" className="btn btn-primary"/>  
-	  </div>
-	  <div className="col-md-4">
-	  <div className="form-group">
-	   <label htmlFor="Backend">Backend URL</label>
-		   <input type="text" name="Backend" value={this.state.backend} onChange={this.handleChange} className="form-control"></input>
-	  </div>
-	  <div className="form-group">
-	   <label htmlFor="Username">Username</label>
-		   <input type="text" name="Username" value={this.state.username} onChange={this.handleChange} className="form-control"></input>
-	  </div>
-	  <div className="form-group">
-	   <label htmlFor="Password">Password</label>
-		   <input type="text" name="Password" value={this.state.password} onChange={this.handleChange} className="form-control"></input>
-	  </div>
-	  </div>
-	  </div>
-	  </form>
-<br/>
-		
-		 <form onSubmit={this.handleSubmit}>
-		 <div className="row">
-		  <div className="col-md-2 offset-md-5">
-		 <div className="form-group">
-		 <label htmlFor="DropdownWebservice">Webservice</label>
-		 <select value={this.state.webserviceState} onChange={this.handleChange} name="DropdownWebservice" className="form-control">
-			 {this.state.dropdownWebserviceOptions}
-          </select>
-		  </div>
-		  </div>
-		  </div>
-		  
-		  <div className="row">
-		  <div className="col-md-6">
-		  <div className="form-group">
-		  <label htmlFor="DropdownCurrencyFrom">Currency I Have</label>
-		 <select value={this.state.currencyFromState} onChange={this.handleChange} name="DropdownCurrencyFrom" className="form-control">
-			 {this.state.dropdownCurrencyFromOptions}
-          </select>
-		   <label htmlFor="AmountFrom">Amount</label>
-		   <input type="text" defaultValue={this.state.amountFrom} name="AmountFrom" className="form-control" ref={(AmountFromInput) => this.AmountFromInput = AmountFromInput}></input>
-		   </div>
-		   </div>
-		   
-		   <div className="col-md-6">
-		   <div className="form-group">
-		  <label htmlFor="DropdownCurrencyTo">Currency I Want</label>
-		 <select value={this.state.currencyToState} onChange={this.handleChange} name="DropdownCurrencyTo" className="form-control">
-			 {this.state.dropdownCurrencyToOptions}
-          </select>
-		    <label htmlFor="AmountTo">Amount</label>
-		   <input type="text" name="AmountTo" className="form-control" ref={(AmountToOutput) => this.AmountToOutput = AmountToOutput}></input>
-		   </div>
-		   </div>
-		   </div>	   	   
-		   <input type="submit" value="Submit" className="btn btn-primary"/>   
-		   </form>	  
+        <Navbar fluid collapseOnSelect>
+          <Navbar.Header>
+            <Navbar.Brand>
+              <Link to="/home">CurrencyConverter</Link>
+            </Navbar.Brand>
+            <Navbar.Toggle />
+          </Navbar.Header>
+          <Navbar.Collapse>
+            <Nav pullRight>
+              {this.state.isAuthenticated
+                ? <NavItem onClick={this.handleLogout}>Logout</NavItem>
+                : [
+                    <RouteNavItem key={1} href="/login">
+                      Login
+                    </RouteNavItem>
+                  ]}
+            </Nav>
+          </Navbar.Collapse>
+        </Navbar>
+        <Routes childProps={childProps} />
       </div>
     );
   }
 }
 
-export default App;
+export default withRouter(App);
