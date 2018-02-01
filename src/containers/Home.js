@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import { Link } from "react-router-dom";
 import { FormGroup, FormControl, ControlLabel } from "react-bootstrap";
+import LoaderButton from "../components/LoaderButton";
 import "./Home.css";
 import axios from 'axios';
 
@@ -10,7 +11,7 @@ export default class Home extends Component {
 
     this.state = {
       isLoading: true,
-      amountFrom: 1,
+      amountFrom: 0,
 	  amountTo: '',
 	  currencyFromState: 'EUR',
 	  currencyToState: 'USD',
@@ -47,22 +48,30 @@ export default class Home extends Component {
   
   handleSubmit = async event => {
     event.preventDefault();
+	this.setState({ isLoading: true });
 	
 		axios.get(
 	 'http://localhost/CurrencyConverterBackEnd/web/api/ConvertCurrency',
 	 {
 		params: {
+			amount: this.state.amountFrom,
 	  currency_from: this.state.currencyFromState,
 	  currency_to: this.state.currencyToState
     }, headers: { 'Authorization': 'Bearer ' + localStorage.getItem('jwt') }
 	 })
 	 .then((response) => {
 		 this.setState({amountTo: response.data.rate});
+		 this.setState({ isLoading: false });
 	 })
 	 .catch((error) => {
-		alert(error); 
+		alert(error);
+		this.setState({ isLoading: false });		
 	 });
   };
+  
+  validateForm() {
+    return this.state.amountFrom.length > 0 && this.state.amountFrom > 0;
+  }
 
   renderLander() {
     return (
@@ -124,7 +133,15 @@ export default class Home extends Component {
           </FormGroup>
 		  </div>
 		  </div>
-		  <input type="submit" value="Submit" className="btn btn-primary"/>   
+		   <LoaderButton
+            block
+            bsSize="large"
+            disabled={!this.validateForm()}
+            type="submit"
+            isLoading={this.state.isLoading}
+            text="Convert"
+            loadingText="Converting…"
+          />
 	  </form>
       </div>
     );
